@@ -1,0 +1,56 @@
+var observedLuminance = 3;
+
+var makePixelArr = funtion(){
+  canvas.getContext('2d')
+  var width = img.clientWidth
+  var height = img.clientHeight
+  context.drawImage(image, width, height)
+  return context.getImageData(0, 0, width, height).data // gives us r, g, b, a values in an array of all pixels i think
+}
+
+//not sure how to do this because I don't know how to only get adjacent pixels
+//however, this looks like a decent layout for trying
+//need to know how wide it is for this or know how the width is measured for pixels below
+var toSuperPixel = function(pixels){ //pixels holds each pixel value
+  var superPix = [pixels[0]]
+  for(var i = 1; i < pixels.length; i++){ 
+    if(superPix[0] == pixels[i])
+      superPix.push(pixels[i])
+  } 
+  for(var j = 0; j < pixels.length; j++){
+   //make other superPix arrays somehow with only adjacent ones 
+  }
+  return superPix
+}
+
+//not sure how
+var illuminGuess = function(properties){
+  properties[0]
+}
+
+var getProps = function(pixel){
+  var reflectance = gaussian({mu: 1, sigma: 1})
+  var illumination = gaussian({mu: 3, sigma: 1})
+  var luminance = reflectance * illumination 
+  var properties = [reflectance, illumination, luminance]
+  return properties
+}
+  
+  
+var reflectancePosterior = Infer({method: 'MCMC', samples: 10000}, function() {
+  var properties = getProps(pixel)
+  observe(Gaussian({mu: properties[2], sigma: 1}), observedLuminance)
+  observe(Gaussian({mu: properties[1], sigma: 0.1}), illuminGuess(properties))//change to a function of pixel values being a super value
+  return reflectance
+});
+  
+//wrap all this into a function
+var pixels = makePixelArr()
+toSuperPixel(pixels)
+  
+//how to generate it, easy to use for multiple models, extract superpixel values from ints 
+//how to organize pixels into superpixels
+//two arrays taken, check if everything matches
+  
+print(expectation(reflectancePosterior))
+viz(reflectancePosterior)
