@@ -11,6 +11,7 @@ var makePixelArr = funtion(){
 //not sure how to do this because I don't know how to only get adjacent pixels
 //however, this looks like a decent layout for trying
 //need to know how wide it is for this or know how the width is measured for pixels below
+//I think this could be implemented when using color
 var toSuperPixel = function(pixels){ //pixels holds each pixel value
   var superPix = [pixels[0]]
   for(var i = 1; i < pixels.length; i++){ 
@@ -23,15 +24,22 @@ var toSuperPixel = function(pixels){ //pixels holds each pixel value
   return superPix
 }
 
-//not sure how
+//based on surroundings, what is the illumination
+//average of pixel values of surrounding 
+//load image and get pixel value, sample some points
 var illuminGuess = function(properties){
-  properties[0]
+  var illums = getNeighborsIllum(pixelLoc) //make a getNeighborsIllum(pixelLocation) that returns an array of the illuminations of all surrounding pixels
+  //pixelLoc can be by click?
+  //just above, below, left, right
+  var sum = illums.reduce((a, b) => a + b, 0);
+  return sum/4 //average of surrounding pixels' illuminations
 }
 
 var getProps = function(pixel){
-  var reflectance = gaussian({mu: 1, sigma: 1})
-  var illumination = gaussian({mu: 3, sigma: 1})
-  var luminance = reflectance * illumination 
+  var reflectance = gaussian({mu: 1, sigma: 1}) // perceived color, reflectance in our brain, what we believe the pixel value is
+  var illumination = gaussian({mu: 3, sigma: 1}) // light cast on the picture in our mind
+  var luminance = reflectance * illumination // pixel value, reflectance and illumation balance out
+  //maybe make a pixelLocation? put this in below array
   var properties = [reflectance, illumination, luminance]
   return properties
 }
@@ -49,7 +57,7 @@ var pixels = makePixelArr()
 toSuperPixel(pixels)
   
 //how to generate it, easy to use for multiple models, extract superpixel values from ints 
-//how to organize pixels into superpixels
+//hwo to organize pixels into superpixels
 //two arrays taken, check if everything matches
   
 print(expectation(reflectancePosterior))
