@@ -1,0 +1,36 @@
+//var getPixels = require("get-pixels")
+
+var get_imgs = getPixels.getPixels("lena.png", function(err, pixels) {
+    //console.log(["After parse", pixels])
+    //console.log(["In callback"])
+    //console.log(["In callback 2"])
+    if(err) {
+    console.log(["Bad image path"])
+    return
+    }
+    //console.log(["got pixels", pixels.shape.slice()])
+    ndarrayImshow.imshow(pixels)
+})
+
+console.log(["got pixels", get_imgs.shape.slice()])
+
+var greeting = function () {
+    return flip(.5) ? "Hello" : "Howdy"
+}
+
+var audience = function () {
+    return flip(.5) ? "World" : "Universe"
+}
+
+var phrase = greeting() + ", " + audience() + "!"
+console.log([lena.dimension])
+
+ndarrayImshow.imshow(lena)
+ndarrayImshow.imshow(get_imgs)
+
+//console.log(["Test"])
+
+var test_array = ndarray.ndarray([1,1,1,1,1])
+console.log([test_array.get(1)])
+
+phrase
