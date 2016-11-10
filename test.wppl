@@ -1,6 +1,7 @@
 //var getPixels = require("get-pixels")
 
-var get_imgs = getPixels.getPixels("lena.png", function(err, pixels) {
+//var get_imgs = getPixels.getPixels("lena.png", function(err, pixels) {
+var get_imgs = getPixels.getPixels("lightdark.png", function(err, pixels) {
     //console.log(["After parse", pixels])
     //console.log(["In callback"])
     //console.log(["In callback 2"])
@@ -27,6 +28,8 @@ console.log([lena.dimension])
 
 ndarrayImshow.imshow(lena)
 ndarrayImshow.imshow(get_imgs)
+
+console.log([get_imgs.get(100,100,1)])
 
 //console.log(["Test"])
 
