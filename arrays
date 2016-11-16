@@ -1,0 +1,15 @@
+//pixel value
+var obserLumin = [100, 100, 100, 230, 230, 230, 100, 165, 100, 230, 165, 230, 100, 100, 100, 230, 230, 230]
+
+var rowPos = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2]
+
+var colPos = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4, 5, 5, 5]
+
+//light cast on the picture in our mind
+//same throughout or no?
+//looking at the Adelson one, it looks as if illumination should be different b/w these squares
+var illumin = [1, 1, 1, 3, 3, 3, 1, 1, 1, 3, 3, 3, 1, 1, 1, 3, 3, 3]
+
+//perceived color, reflectance in our brain, what we believe the pixel value is
+//we perceive the one in the darker square to be lighter than the one in the lighter square
+var reflect = [100, 100, 100, 230, 230, 230, 100, 185, 100, 230, 145, 230, 100, 100, 100, 230, 230, 230]
