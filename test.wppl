@@ -27,9 +27,10 @@ var phrase = greeting() + ", " + audience() + "!"
 console.log([lena.dimension])
 
 ndarrayImshow.imshow(lena)
-ndarrayImshow.imshow(get_imgs)
 
 console.log([get_imgs.get(100,100,1)])
+get_imgs.set(100,100,3, 100)
+ndarrayImshow.imshow(get_imgs)
 
 //console.log(["Test"])
 

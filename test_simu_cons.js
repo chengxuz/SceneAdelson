@@ -1,0 +1,92 @@
+/*
+var reflect_build_prior =  function() {return gaussian({mu: 1, sigma: 1})}
+var num_rep = 2
+
+var fun_big_observe = function(tmp_observe, index_want) {
+  var reflectancePosterior = Infer({method: 'MCMC', samples: 10000}, function() {
+    var reflect_list = repeat(num_rep, reflect_build_prior)
+    var illumination = gaussian({mu: 3, sigma: 1})
+
+    var lumin_list = map(function(reflect_now){return reflect_now * illumination}, reflect_list)
+    var obs_help_func = function (indx_need){observe(Gaussian({mu: lumin_list[indx_need], sigma: 1}), tmp_observe[indx_need])}
+    map(obs_help_func, _.range(num_rep))
+    return reflect_list[index_want]
+  });
+
+  return reflectancePosterior
+}
+
+var current_reflect = fun_big_observe([3, 1], 1);
+console.log(expectation(current_reflect))
+*/
+
+// Define some help function
+var reflect_build_prior =  function() {return gaussian({mu: 1, sigma: 1})}
+
+// Define some constants
+//var col_num = 3
+var col_num = 6
+var row_num = 3
+var num_rep = col_num*row_num
+
+// Define the luminance matrix (the pixel map)
+
+//var lum_list = [5,5,5, 5,3,5, 5,5,5]
+var lum_list = [5,5,5, 1,1,1, 5,3,5, 1,3,1, 5,5,5, 1,1,1]
+
+var fun_big_observe = function(tmp_observe, index_want, index_want2) {
+  var reflectancePosterior = Infer({method: 'MCMC', samples: 10000}, function() {
+  //var reflectancePosterior = Infer({method: 'MCMC', samples: 10}, function() {
+    var reflect_list = repeat(num_rep, reflect_build_prior)
+    var illumination = gaussian({mu: 3, sigma: 1})
+
+    var lumin_list = map(function(reflect_now){return reflect_now * illumination}, reflect_list)
+
+    var build_env_fun = function(curr_indx){
+        var sum_all = []
+        var num_all = []
+
+        var x_delta_list = [-1, 1, 0, 0]
+        var y_delta_list = [0, 0, -1, 1]
+
+        var curr_x  = curr_indx%col_num
+        var curr_y  = (curr_indx - curr_x)/col_num
+
+        var border_help_fun = function(indx_delta){
+            var new_x   = curr_x + x_delta_list[indx_delta]
+            var new_y   = curr_y + y_delta_list[indx_delta]
+            if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
+                var new_indx    = new_x + new_y*col_num
+                num_all.push(1)
+                sum_all.push(reflect_list[new_indx])
+                //console.log(new_indx)
+                //num_all         = num_all + 1
+                //sum_all         = sum_all + reflect_list[new_indx]
+            }
+        }
+        map(border_help_fun, _.range(4))
+        //console.log('Test')
+        //console.log(sum(num_all))
+
+        var average_all = sum(sum_all)/sum(num_all)
+        var diff_all    = reflect_list[curr_indx] - average_all
+        observe(Gaussian({mu: diff_all, sigma: 1}), 0)
+    }
+
+    map(build_env_fun, _.range(num_rep))
+
+    var obs_help_func       = function (indx_need){observe(Gaussian({mu: lumin_list[indx_need], sigma: 1}), tmp_observe[indx_need])}
+    map(obs_help_func, _.range(num_rep))
+    return reflect_list[index_want] - reflect_list[index_want2]
+  });
+
+  return reflectancePosterior
+}
+
+//var current_reflect = fun_big_observe(lum_list, 4);
+var current_reflect = fun_big_observe(lum_list, 7, 10);
+console.log(expectation(current_reflect))
+
+//var current_reflect_ = fun_big_observe(lum_list, 10);
+//console.log(expectation(current_reflect_))
+//console.log(num_rep)
