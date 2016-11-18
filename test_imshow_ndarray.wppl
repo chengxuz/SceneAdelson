@@ -1,0 +1,20 @@
+var img_size    = 32
+
+var test_raw    = repeat(img_size*img_size, function(){return 0})
+var test_array  = ndarray.ndarray(test_raw,[img_size, img_size])
+var size_array  = img_size*img_size
+var pixel_array = [1, 0, 0, 1]
+var len_array   = img_size/2
+var set_help_fun    = function(indx_now){
+    var curr_y      = indx_now % img_size
+    var curr_x      = (indx_now - curr_y)/img_size
+
+    var new_indx    = (curr_y - curr_y%len_array)/len_array*2 + (curr_x - curr_x%len_array)/len_array
+    test_array.set(curr_y, curr_x, pixel_array[new_indx]*255)
+}
+map(set_help_fun, _.range(size_array))
+//test_array.set(16, 16, 255)
+savePixels.savePixels(test_array, "png", "test_img_ge_webppl.png")
+console.log(test_array.shape.slice())
+//console.log(test_array.get(11, 11))
+//console.log(test_raw)

@@ -1,8 +1,0 @@
-var test_raw    = repeat(32*32, function(){return 0})
-//var test_array  = ndarray.ndarray(test_raw,[32, 32], 1, 0)
-var test_array  = ndarray.ndarray(test_raw,[32, 32])
-test_array.set(16, 16, 255)
-savePixels.savePixels(test_array, "png", "test_img_ge_webppl.png")
-console.log(test_array.shape.slice())
-console.log(test_array.get(11, 11))
-//console.log(test_raw)
