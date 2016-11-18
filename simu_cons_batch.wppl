@@ -1,0 +1,149 @@
+
+// Define some constants
+var col_num = 6
+var row_num = 3
+var num_rep = col_num*row_num
+var mcmc_sample_num     = 20000
+var dist_sample_num     = 20000
+
+// Get parameters from command line
+var mu_illu     = ndarray.string_to_float(process.argv[3])
+var mu_refl     = ndarray.string_to_float(process.argv[4])
+var sigma_all   = ndarray.string_to_float(process.argv[5])
+
+// Define some help function
+var reflect_build_prior =  function() {return gaussian({mu: mu_refl, sigma: 1})}
+
+// Define the luminance matrix (the pixel map)
+var lum_list = [5,5,5, 1,1,1, 5,3,5, 1,3,1, 5,5,5, 1,1,1]
+
+var fun_big_observe = function(tmp_observe, index_want, index_want2) {
+  var reflectancePosterior = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
+    var reflect_list = repeat(num_rep, reflect_build_prior)
+    var illumination = gaussian({mu: mu_illu, sigma: sigma_all})
+
+    var lumin_list = map(function(reflect_now){return reflect_now * illumination}, reflect_list)
+
+    var build_env_fun = function(curr_indx){
+        var sum_all = []
+        var num_all = []
+
+        var x_delta_list = [-1, 1, 0, 0]
+        var y_delta_list = [0, 0, -1, 1]
+
+        var curr_x  = curr_indx%col_num
+        var curr_y  = (curr_indx - curr_x)/col_num
+
+        var border_help_fun = function(indx_delta){
+            var new_x   = curr_x + x_delta_list[indx_delta]
+            var new_y   = curr_y + y_delta_list[indx_delta]
+            if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
+                var new_indx    = new_x + new_y*col_num
+                num_all.push(1)
+                sum_all.push(reflect_list[new_indx])
+            }
+        }
+        map(border_help_fun, _.range(4))
+
+        var average_all = sum(sum_all)/sum(num_all)
+        var diff_all    = reflect_list[curr_indx] - average_all
+        observe(Gaussian({mu: diff_all, sigma: sigma_all}), 0)
+    }
+
+    map(build_env_fun, _.range(num_rep))
+
+    var obs_help_func       = function (indx_need){observe(Gaussian({mu: lumin_list[indx_need], sigma: sigma_all}), tmp_observe[indx_need])}
+    map(obs_help_func, _.range(num_rep))
+    return [reflect_list[index_want] , reflect_list[index_want2]]
+  });
+
+  return reflectancePosterior
+}
+
+var current_ref_dist = fun_big_observe(lum_list, 7, 10);
+var all_samples_ref  = repeat(dist_sample_num, function() {return sample(current_ref_dist)})
+var list_ref_1      = map(function(now_tmp_l) {return now_tmp_l[0]}, all_samples_ref)
+var list_ref_2      = map(function(now_tmp_l) {return now_tmp_l[1]}, all_samples_ref)
+var ref_1_value     = listMean(list_ref_1)
+var ref_2_value     = listMean(list_ref_2)
+console.log([ref_1_value, ref_2_value])
+
+var fun_big_observe_rev = function(tmp_observe, index_want, index_want2) {
+  var reflectancePosterior = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
+
+    var reflect_list = repeat(num_rep, reflect_build_prior)
+    var illumination = gaussian({mu: mu_illu, sigma: sigma_all})
+
+    var lumin_list = map(function(reflect_now){return reflect_now * illumination}, reflect_list)
+
+    var build_env_fun = function(curr_indx){
+        var sum_all = []
+        var num_all = []
+
+        var x_delta_list = [-1, 1, 0, 0]
+        var y_delta_list = [0, 0, -1, 1]
+
+        var curr_x  = curr_indx%col_num
+        var curr_y  = (curr_indx - curr_x)/col_num
+
+        var border_help_fun = function(indx_delta){
+            var new_x   = curr_x + x_delta_list[indx_delta]
+            var new_y   = curr_y + y_delta_list[indx_delta]
+            if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
+                var new_indx    = new_x + new_y*col_num
+                num_all.push(1)
+                sum_all.push(reflect_list[new_indx])
+            }
+        }
+        map(border_help_fun, _.range(4))
+
+        var average_all = sum(sum_all)/sum(num_all)
+        var diff_all    = reflect_list[curr_indx] - average_all
+        observe(Gaussian({mu: diff_all, sigma: sigma_all}), 0)
+    }
+
+    map(build_env_fun, _.range(num_rep))
+
+    var obs_help_func       = function (indx_need){
+        if (indx_need!=index_want && indx_need!=index_want2) {
+            observe(Gaussian({mu: lumin_list[indx_need], sigma: sigma_all}), tmp_observe[indx_need])
+        }
+    }
+
+    map(obs_help_func, _.range(num_rep))
+
+    var diff_two_want   = reflect_list[index_want] - reflect_list[index_want2]
+    observe(Gaussian({mu: diff_two_want, sigma: sigma_all}), 0)
+    return [lumin_list[index_want], lumin_list[index_want2]]
+  });
+
+  return reflectancePosterior
+}
+
+var current_lumin_dist = fun_big_observe_rev(lum_list, 7, 10);
+var all_samples_lum    = repeat(dist_sample_num, function() {return sample(current_lumin_dist)})
+var list_lum_1      = map(function(now_tmp_l) {return now_tmp_l[0]}, all_samples_lum)
+var list_lum_2      = map(function(now_tmp_l) {return now_tmp_l[1]}, all_samples_lum)
+var lum_1_value     = listMean(list_lum_1)
+var lum_2_value     = listMean(list_lum_2)
+console.log([lum_1_value, lum_2_value])
+
+var lum_list_new = [5,5,5, 1,1,1, 5,lum_1_value,5, 1,lum_2_value,1, 5,5,5, 1,1,1]
+var img_width   = 180
+var img_heigh   = 90
+var channel_num = 3
+var big_raw     = repeat(img_width*img_heigh*channel_num, function() {return 0})
+var big_array   = ndarray.ndarray(big_raw, [img_width, img_heigh, channel_num])
+var big_size    = img_width*img_heigh
+var grid_size   = 30
+var big_set_help_fun    = function(indx_now){
+    var curr_x      = indx_now % img_width
+    var curr_y      = (indx_now - curr_x)/img_width
+
+    var new_indx    = (curr_y - curr_y%grid_size)/grid_size*(img_width/grid_size) + (curr_x - curr_x%grid_size)/grid_size
+    map(function(chan_indx) {big_array.set(curr_x, curr_y, chan_indx, lum_list_new[new_indx]*30 + 50)}, _.range(channel_num))
+}
+map(big_set_help_fun, _.range(big_size))
+var name_prefix = "results/result_img_"
+savePixels.savePixels(big_array, "png", name_prefix.concat(process.argv[3]).concat("_").concat(process.argv[3]).concat("_").concat(process.argv[4]).concat(".png"))
+console.log('Ah, done!')

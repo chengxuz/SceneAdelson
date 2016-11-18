@@ -13,8 +13,37 @@ var set_help_fun    = function(indx_now){
     test_array.set(curr_y, curr_x, pixel_array[new_indx]*255)
 }
 map(set_help_fun, _.range(size_array))
-//test_array.set(16, 16, 255)
 savePixels.savePixels(test_array, "png", "test_img_ge_webppl.png")
 console.log(test_array.shape.slice())
-//console.log(test_array.get(11, 11))
-//console.log(test_raw)
+console.log(process.argv)
+console.log(ndarray.string_to_float('101'))
+
+
+var lum_list = [5,5,5, 1,1,1, 5,3,5, 1,3,1, 5,5,5, 1,1,1]
+var img_width   = 180
+var img_heigh   = 90
+var channel_num = 3
+var big_raw     = repeat(img_width*img_heigh*channel_num, function() {return 0})
+var big_array   = ndarray.ndarray(big_raw, [img_width, img_heigh, channel_num])
+var big_size    = img_width*img_heigh
+var grid_size   = 30
+var big_set_help_fun    = function(indx_now){
+    var curr_x      = indx_now % img_width
+    var curr_y      = (indx_now - curr_x)/img_width
+
+    var new_indx    = (curr_y - curr_y%grid_size)/grid_size*(img_width/grid_size) + (curr_x - curr_x%grid_size)/grid_size
+    map(function(chan_indx) {big_array.set(curr_x, curr_y, chan_indx, lum_list[new_indx]*30 + 50)}, _.range(channel_num))
+}
+map(big_set_help_fun, _.range(big_size))
+var name_prefix = "big_img_ge_webppl"
+savePixels.savePixels(big_array, "png", name_prefix.concat(".png"))
+console.log('Ah, done!')
+
+var txtFile = "test.txt";
+var file = new File(txtFile);
+
+file.open("w"); // open file with write access
+file.writeln("First line of text");
+file.writeln("Second line of text " + str);
+file.write(str);
+file.close();
