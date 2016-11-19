@@ -22,6 +22,7 @@ console.log(expectation(current_reflect))
 
 // Define some help function
 var reflect_build_prior =  function() {return gaussian({mu: 1, sigma: 1})}
+var illumin_build_prior =  function() {return gaussian({mu: 3, sigma: 1})}
 
 // Define some constants
 //var col_num = 3
@@ -38,16 +39,18 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2) {
   var reflectancePosterior = Infer({method: 'MCMC', samples: 10000}, function() {
   //var reflectancePosterior = Infer({method: 'MCMC', samples: 10}, function() {
     var reflect_list = repeat(num_rep, reflect_build_prior)
-    var illumination = gaussian({mu: 3, sigma: 1})
+    //var illumination = gaussian({mu: 3, sigma: 1})
+    var illumination = repeat(num_rep, illumin_build_prior)
+    var mul_factor   = gaussian({mu: 3, sigma: 1})
 
-    var lumin_list = map(function(reflect_now){return reflect_now * illumination}, reflect_list)
+    var lumin_list = map(function(indx_now){return reflect_list[indx_now] * illumination[indx_now]}, _.range(num_rep))
 
     var build_env_fun = function(curr_indx){
         var sum_all = []
         var num_all = []
 
-        var x_delta_list = [-1, 1, 0, 0]
-        var y_delta_list = [0, 0, -1, 1]
+        var x_delta_list = [-1, 1, 0, 0, 0]
+        var y_delta_list = [0, 0, -1, 1, 0]
 
         var curr_x  = curr_indx%col_num
         var curr_y  = (curr_indx - curr_x)/col_num
@@ -69,7 +72,8 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2) {
         //console.log(sum(num_all))
 
         var average_all = sum(sum_all)/sum(num_all)
-        var diff_all    = reflect_list[curr_indx] - average_all
+        var diff_all    = mul_factor*average_all - illumination[curr_indx]
+        //var diff_all    = reflect_list[curr_indx] - average_all
         observe(Gaussian({mu: diff_all, sigma: 1}), 0)
     }
 

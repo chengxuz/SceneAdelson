@@ -1,3 +1,5 @@
 *.swp
-result*
+results*
 test*.txt
+.DS_Store
+$*.docx
