@@ -23,7 +23,8 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
   var reflectancePosterior = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
     var reflect_list = repeat(num_rep, reflect_build_prior)
     var illumination = repeat(num_rep, illumin_build_prior)
-    var mul_factor   = gaussian({mu: mu_illu/mu_refl, sigma: sigma_all})
+    //var mul_factor   = gaussian({mu: mu_illu/mu_refl, sigma: sigma_all})
+    var mul_factor   = gaussian({mu: 1/mu_refl, sigma: sigma_all})
 
     var lumin_list = map(function(indx_now){return reflect_list[indx_now] * illumination[indx_now]}, _.range(num_rep))
 
@@ -44,7 +45,8 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
             if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
                 var new_indx    = new_x + new_y*col_num
                 //num_all.push(1)
-                sum_all.push(reflect_list[new_indx])
+                //sum_all.push(reflect_list[new_indx])
+                sum_all.push(lumin_list[new_indx])
                 if (indx_delta!=4){
                     sum_all_i.push(illumination[new_indx])
                 }
@@ -127,12 +129,12 @@ var func_generate_img = function(lum_list_new, img_width, img_heigh, channel_num
 
 var big_array   = func_generate_img(lum_list_new, img_width, img_heigh, channel_num, grid_size)
 //var name_prefix = "results/result_img_"
-var name_prefix = "results_result_img_"
+var name_prefix = "results_2_result_img_"
 savePixels.savePixels(big_array, "png", name_prefix.concat(process.argv[3]).concat("_").concat(process.argv[4]).concat("_").concat(process.argv[5]).concat("_").concat(process.argv[6]).concat(".png"))
 
 var lum_list_new = [5,5,5, 1,1,1, 5,lum_2_value,5, 1,lum_1_value,1, 5,5,5, 1,1,1]
 var big_array   = func_generate_img(lum_list_new, img_width, img_heigh, channel_num, grid_size)
-var name_prefix = "results_result_img_"
+//var name_prefix = "results_result_img_"
 savePixels.savePixels(big_array, "png", name_prefix.concat(process.argv[3]).concat("_").concat(process.argv[4]).concat("_").concat(process.argv[5]).concat("_").concat(process.argv[6]).concat("_re.png"))
 
 console.log('Ah, done!')

@@ -3,3 +3,4 @@ results*
 test*.txt
 .DS_Store
 $*.docx
+~$*
