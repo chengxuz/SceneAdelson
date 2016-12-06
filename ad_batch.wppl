@@ -25,7 +25,10 @@ var shadow_build_prior  =  function() {return flip(shadow_prior)}
 
 // Define the luminance matrix (the pixel map)
 //var lum_list    = [1, 3, 1, 10, 10, 3, 1, 5, 10, 10, 1, 5, 3, 5, 1, 5, 3, 5, 1, 3, 3, 5, 1, 3, 1]
-var lum_list    = [5, 3, 5, 3, 5,   3, 5, 1, 3, 1,   5, 1, 3, 1, 5, 1, 3, 1, 5, 3, 3, 1, 5, 3, 5]
+//var lum_list    = [5, 3, 5, 3, 5,   3, 5, 1, 3, 1,   5, 1, 3, 1, 5, 1, 3, 1, 5, 3, 3, 1, 5, 3, 5]
+
+var lum_list    = [6, 3, 6, 3, 6,   3, 6, 1, 3, 1,   6, 1, 3, 1, 6, 1, 3, 1, 6, 3, 3, 1, 6, 3, 6]
+
 // Define where the object is
 var obj_list    = [0, 0, 0, 1, 1,   0, 0, 0, 1, 1,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 var obj_pos_list    = [3, 4, 8, 9]
