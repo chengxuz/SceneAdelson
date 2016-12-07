@@ -57,7 +57,7 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
         //var average_all = sum(sum_all)/sum(num_all)
         var average_all = listMean(sum_all)
         var diff_all    = mul_factor*average_all - illumination[curr_indx]
-        observe(Gaussian({mu: diff_all, sigma: sigma_diff}), 0)
+        //observe(Gaussian({mu: diff_all, sigma: sigma_diff}), 0)
         var illu_ave    = listMean(sum_all_i)
         var illu_diff   = illumination[curr_indx] - illu_ave
         observe(Gaussian({mu: illu_diff, sigma: sigma_diff}), 0)
