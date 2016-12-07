@@ -129,7 +129,8 @@ var func_generate_img = function(lum_list_new, img_width, img_heigh, channel_num
 
 var big_array   = func_generate_img(lum_list_new, img_width, img_heigh, channel_num, grid_size)
 //var name_prefix = "results/result_img_"
-var name_prefix = "results_2_result_img_"
+//var name_prefix = "results_2_result_img_"
+var name_prefix = "results_3_result_img_"
 savePixels.savePixels(big_array, "png", name_prefix.concat(process.argv[3]).concat("_").concat(process.argv[4]).concat("_").concat(process.argv[5]).concat("_").concat(process.argv[6]).concat(".png"))
 
 var lum_list_new = [5,5,5, 1,1,1, 5,lum_2_value,5, 1,lum_1_value,1, 5,5,5, 1,1,1]
