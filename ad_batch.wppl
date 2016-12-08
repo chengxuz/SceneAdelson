@@ -77,43 +77,87 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
 
   var light_dire_dist   = fun_light
 
+  var illuminationPrior     = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
+
+    var shadow_list  = map(function(indx_now){
+        if (obj_list[indx_now]==1) {return 1} else {return flip(shadow_prior)}
+    }, _.range(num_rep))
+
+    var illumination = map(function(indx_now){return gaussian({mu: mu_illu - shadow_list[indx_now]*shadow_decill, sigma: sigma_all})}, _.range(num_rep))
+    var light_dire   = sample(light_dire_dist)
+
+    var build_env_fun = function(curr_indx){
+        if (obj_list[curr_indx]==1){
+            return
+        }
+        var sum_all_i   = []
+        var num_all_i   = []
+
+        var curr_x  = curr_indx%col_num
+        var curr_y  = (curr_indx - curr_x)/col_num
+
+        var border_help_fun = function(indx_delta){
+            var new_x   = curr_x + x_delta_list[indx_delta]
+            var new_y   = curr_y + y_delta_list[indx_delta]
+            var new_indx    = new_x + new_y*col_num
+
+            if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
+
+                if (obj_list[new_indx]==0){
+                    if (indx_delta<4){
+                        num_all_i.push(2)
+                        sum_all_i.push(2*illumination[new_indx])
+                    } 
+                    if (indx_delta>4){
+                        num_all_i.push(1)
+                        sum_all_i.push(illumination[new_indx])
+                    }
+                }
+            }
+        }
+        map(border_help_fun, _.range(9))
+
+        var illu_ave    = sum(sum_all_i)/sum(num_all_i)
+        var illu_diff   = illumination[curr_indx] - illu_ave
+        observe(Gaussian({mu: illu_diff, sigma: sigma_diff}), 0)
+
+        var shadow_help_fun = function(indx_obj){
+            var obj_curr_x  = obj_pos_list[indx_obj]%col_num
+            var obj_curr_y  = (obj_pos_list[indx_obj] - obj_curr_x)/col_num
+
+            var delta_x     = curr_x - obj_curr_x
+            var delta_y     = curr_y - obj_curr_y
+
+            if (delta_x*light_array[light_dire][1]==delta_y*light_array[light_dire][0]){
+                observe(Gaussian({mu: shadow_list[curr_indx], sigma: sigma_shad_diff}), 1)
+            }
+        }
+        map(shadow_help_fun, _.range(4))
+    }
+
+    map(build_env_fun, _.range(num_rep))
+    return illumination
+  })
+
+  var illu_prior    = illuminationPrior
   var reflectancePosterior = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
     var reflect_list = repeat(num_rep, reflect_build_prior)
     //var shadow_list  = repeat(num_rep, shadow_build_prior)
     //var illumination = repeat(num_rep, illumin_build_prior)
     //var mul_factor   = gaussian({mu: mu_illu/mu_refl, sigma: sigma_all})
+    var illumination = sample(illu_prior)
+    /*
     var shadow_list  = map(function(indx_now){
         if (obj_list[indx_now]==1) {return 1} else {return flip(shadow_prior)}
     }, _.range(num_rep))
     var illumination = map(function(indx_now){return gaussian({mu: mu_illu - shadow_list[indx_now]*shadow_decill, sigma: sigma_all})}, _.range(num_rep))
     var mul_factor   = gaussian({mu: 1/mu_refl, sigma: sigma_all})
     var light_dire   = sample(light_dire_dist)
-
-    /*
-    var light_dire   = discrete({ps: [1,1,1,1,
-                                      1,1,1,1]})
-	var func_help_light = function(curr_indx){
-		var max_light = light_range[light_dire][1]
-		var min_light = light_range[light_dire][0]
-		if (min_light < max_light){
-		    if (curr_indx <=max_light && curr_indx >=min_light){
-			  observe(Gaussian({mu: brig_light, sigma: light_sigma_light}), cube_light[curr_indx])
-		    } else {
-			  observe(Gaussian({mu: dark_light, sigma: light_sigma_light}), cube_light[curr_indx])
-		    }
-		} else {
-		    if (curr_indx >=max_light || curr_indx <=min_light){
-			    observe(Gaussian({mu: brig_light, sigma: light_sigma_light}), cube_light[curr_indx])
-		    } else {
-			    observe(Gaussian({mu: dark_light, sigma: light_sigma_light}), cube_light[curr_indx])
-		    }      
-		}
-	}
-    map(func_help_light, _.range(4))
     */
 
     var lumin_list = map(function(indx_now){return reflect_list[indx_now] * illumination[indx_now]}, _.range(num_rep))
 
+    /*
     var build_env_fun = function(curr_indx){
         if (obj_list[curr_indx]==1){
             return
@@ -158,7 +202,7 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
 
         var average_all = sum(sum_all)/sum(num_all)
         var diff_all    = mul_factor*average_all - illumination[curr_indx]
-        observe(Gaussian({mu: diff_all, sigma: sigma_diff}), 0)
+        //observe(Gaussian({mu: diff_all, sigma: sigma_diff}), 0)
         var illu_ave    = sum(sum_all_i)/sum(num_all_i)
         var illu_diff   = illumination[curr_indx] - illu_ave
         observe(Gaussian({mu: illu_diff, sigma: sigma_diff}), 0)
@@ -178,7 +222,7 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
     }
 
     map(build_env_fun, _.range(num_rep))
-
+    */
 
     if (want_img==0){
         var obs_help_func       = function (indx_need){
@@ -188,7 +232,8 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
         }
         map(obs_help_func, _.range(num_rep))
 
-        return [reflect_list[index_want] , reflect_list[index_want2], shadow_list[index_want], shadow_list[index_want2], light_dire]
+        return [reflect_list[index_want] , reflect_list[index_want2]]
+        //return [reflect_list[index_want] , reflect_list[index_want2], shadow_list[index_want], shadow_list[index_want2], light_dire]
         //return [reflect_list[index_want] , reflect_list[index_want2], shadow_list[7], shadow_list[13]]
 
     } else {
@@ -212,17 +257,17 @@ var current_ref_dist = fun_big_observe(lum_list, 1, 12, 0);
 var all_samples_ref  = repeat(dist_sample_num, function() {return sample(current_ref_dist)})
 var list_ref_1      = map(function(now_tmp_l) {return now_tmp_l[0]}, all_samples_ref)
 var list_ref_2      = map(function(now_tmp_l) {return now_tmp_l[1]}, all_samples_ref)
-var list_sha_1      = map(function(now_tmp_l) {return now_tmp_l[2]}, all_samples_ref)
-var list_sha_2      = map(function(now_tmp_l) {return now_tmp_l[3]}, all_samples_ref)
-var list_lig_d      = map(function(now_tmp_l) {return now_tmp_l[4]}, all_samples_ref)
+//var list_sha_1      = map(function(now_tmp_l) {return now_tmp_l[2]}, all_samples_ref)
+//var list_sha_2      = map(function(now_tmp_l) {return now_tmp_l[3]}, all_samples_ref)
+//var list_lig_d      = map(function(now_tmp_l) {return now_tmp_l[4]}, all_samples_ref)
 var ref_1_value     = listMean(list_ref_1)
 var ref_2_value     = listMean(list_ref_2)
-var sha_1_value     = listMean(list_sha_1)
-var sha_2_value     = listMean(list_sha_2)
-var light_dire      = listMean(list_lig_d)
+//var sha_1_value     = listMean(list_sha_1)
+//var sha_2_value     = listMean(list_sha_2)
+//var light_dire      = listMean(list_lig_d)
 console.log([ref_1_value, ref_2_value])
-console.log([sha_1_value, sha_2_value])
-console.log(light_dire)
+//console.log([sha_1_value, sha_2_value])
+//console.log(light_dire)
 
 var current_lumin_dist = fun_big_observe(lum_list, 1, 12,1);
 var all_samples_lum    = repeat(dist_sample_num, function() {return sample(current_lumin_dist)})
@@ -231,38 +276,3 @@ var list_lum_2      = map(function(now_tmp_l) {return now_tmp_l[1]}, all_samples
 var lum_1_value     = listMean(list_lum_1)
 var lum_2_value     = listMean(list_lum_2)
 console.log([lum_1_value, lum_2_value])
-
-/*
-var lum_list_new = [5,5,5, 1,1,1, 5,lum_1_value,5, 1,lum_2_value,1, 5,5,5, 1,1,1]
-var img_width   = 180
-var img_heigh   = 90
-var channel_num = 3
-var grid_size   = 30
-
-var func_generate_img = function(lum_list_new, img_width, img_heigh, channel_num, grid_size){
-    var big_raw     = repeat(img_width*img_heigh*channel_num, function() {return 0})
-    var big_array   = ndarray.ndarray(big_raw, [img_width, img_heigh, channel_num])
-    var big_size    = img_width*img_heigh
-    var big_set_help_fun    = function(indx_now){
-        var curr_x      = indx_now % img_width
-        var curr_y      = (indx_now - curr_x)/img_width
-
-        var new_indx    = (curr_y - curr_y%grid_size)/grid_size*(img_width/grid_size) + (curr_x - curr_x%grid_size)/grid_size
-        map(function(chan_indx) {big_array.set(curr_x, curr_y, chan_indx, lum_list_new[new_indx]*30 + 50)}, _.range(channel_num))
-    }
-    map(big_set_help_fun, _.range(big_size))
-    return big_array
-}
-
-var big_array   = func_generate_img(lum_list_new, img_width, img_heigh, channel_num, grid_size)
-//var name_prefix = "results/result_img_"
-var name_prefix = "results_2_result_img_"
-savePixels.savePixels(big_array, "png", name_prefix.concat(process.argv[3]).concat("_").concat(process.argv[4]).concat("_").concat(process.argv[5]).concat("_").concat(process.argv[6]).concat(".png"))
-
-var lum_list_new = [5,5,5, 1,1,1, 5,lum_2_value,5, 1,lum_1_value,1, 5,5,5, 1,1,1]
-var big_array   = func_generate_img(lum_list_new, img_width, img_heigh, channel_num, grid_size)
-//var name_prefix = "results_result_img_"
-savePixels.savePixels(big_array, "png", name_prefix.concat(process.argv[3]).concat("_").concat(process.argv[4]).concat("_").concat(process.argv[5]).concat("_").concat(process.argv[6]).concat("_re.png"))
-
-console.log('Ah, done!')
-*/

@@ -12,22 +12,88 @@ var mu_refl     = ndarray.string_to_float(process.argv[4])
 var sigma_all   = ndarray.string_to_float(process.argv[5])
 var sigma_diff  = ndarray.string_to_float(process.argv[6])
 
+var cov_array   = [1, 0.4, 0.2]
+
 // Define some help function
 var reflect_build_prior =  function() {return gaussian({mu: mu_refl, sigma: sigma_all})}
 var illumin_build_prior =  function() {return gaussian({mu: mu_illu, sigma: sigma_all})}
+
+var fst_lev_fun_ipr     = function(curr_indx) {
+    var curr_x  = curr_indx%col_num
+    var curr_y  = (curr_indx - curr_x)/col_num
+
+    var scd_lev_fun_ipr = function(now_indx){
+        var curr_x_i    = now_indx%col_num
+        var curr_y_i    = (now_indx - curr_x_i)/col_num
+        var x_diff      = Math.abs(curr_x - curr_x_i)
+        var y_diff      = Math.abs(curr_y - curr_y_i)
+        var abs_diff    = x_diff + y_diff
+        if (abs_diff < 3 && x_diff<2 && y_diff<2){
+            return cov_array[abs_diff]*sigma_all
+        } else {
+            return 0
+        }
+    }
+
+    return map(scd_lev_fun_ipr, _.range(num_rep))
+}
+
+var cov_array   = map(fst_lev_fun_ipr, _.range(num_rep))
+var cov_mat     = Matrix(cov_array)
+var mu_ten      = Vector(repeat(num_rep, function(){return mu_illu}))
 
 // Define the luminance matrix (the pixel map)
 var lum_list = [5,5,5, 1,1,1, 5,3,5, 1,3,1, 5,5,5, 1,1,1]
 
 var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
+  var illuminationPrior     = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
+    var illumination = repeat(num_rep, illumin_build_prior)
+    var build_env_fun = function(curr_indx){
+        var sum_all_i   = []
+
+        var x_delta_list = [-1, 1, 0, 0, 0]
+        var y_delta_list = [0, 0, -1, 1, 0]
+
+        var curr_x  = curr_indx%col_num
+        var curr_y  = (curr_indx - curr_x)/col_num
+
+        var border_help_fun = function(indx_delta){
+            var new_x   = curr_x + x_delta_list[indx_delta]
+            var new_y   = curr_y + y_delta_list[indx_delta]
+            if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
+                var new_indx    = new_x + new_y*col_num
+                if (indx_delta!=4){
+                    sum_all_i.push(illumination[new_indx])
+                }
+            }
+        }
+        map(border_help_fun, _.range(5))
+
+        var illu_ave    = listMean(sum_all_i)
+        var illu_diff   = illumination[curr_indx] - illu_ave
+        observe(Gaussian({mu: illu_diff, sigma: sigma_diff}), 0)
+    }
+
+    map(build_env_fun, _.range(num_rep))
+    return illumination
+  })
+
+  var illu_prior    = illuminationPrior
   var reflectancePosterior = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
     var reflect_list = repeat(num_rep, reflect_build_prior)
-    var illumination = repeat(num_rep, illumin_build_prior)
+    //var illumination_sam = sample(MultivariateGaussian({mu: mu_ten, cov: cov_mat}))
+    //console.log(illumination_sam)
+    //var illumination = map(function(curr_indx){return illumination_sam["data"][curr_indx]}, _.range(num_rep))
+    //var illumination = repeat(num_rep, illumin_build_prior)
+    var illumination = sample(illu_prior)
     //var mul_factor   = gaussian({mu: mu_illu/mu_refl, sigma: sigma_all})
-    var mul_factor   = gaussian({mu: 1/mu_refl, sigma: sigma_all})
+    //var mul_factor   = gaussian({mu: 1/mu_refl, sigma: sigma_all})
 
     var lumin_list = map(function(indx_now){return reflect_list[indx_now] * illumination[indx_now]}, _.range(num_rep))
+    //console.log(illumination)
+    //console.log(lumin_list)
 
+    /*
     var build_env_fun = function(curr_indx){
         var sum_all = []
         //var num_all = []
@@ -64,6 +130,7 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
     }
 
     map(build_env_fun, _.range(num_rep))
+    */
 
     if (want_img==0){
 
