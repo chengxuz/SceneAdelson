@@ -3,8 +3,6 @@
 var col_num = 5
 var row_num = 5
 var num_rep = col_num*row_num
-//var mcmc_sample_num     = 30000
-//var dist_sample_num     = 20000
 var mcmc_sample_num     = 30000
 var dist_sample_num     = 20000
 var shadow_prior        = 0.05
@@ -20,7 +18,6 @@ var sigma_shad_diff     = 0.1
 
 // Define some help function to provide priors
 var reflect_build_prior =  function() {return gaussian({mu: mu_refl, sigma: sigma_all})}
-//var illumin_build_prior =  function() {return gaussian({mu: mu_illu, sigma: sigma_all})}
 var shadow_build_prior  =  function() {return flip(shadow_prior)}
 
 // Define the luminance matrix (the pixel map)
@@ -50,7 +47,7 @@ var brig_light = 3
 var light_sigma_light   = 0.5
 
 var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
-  var fun_light = Infer({method: 'MCMC', samples: 30000}, function(){
+  var fun_light = Infer({method: 'MCMC', samples: mcmc_sample_num}, function(){
     var light_dire   = discrete({ps: [1,1,1,1,
                                       1,1,1,1]})
 	var func_help_light = function(curr_indx){
@@ -77,135 +74,84 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
 
   var light_dire_dist   = fun_light
 
-  var illuminationPrior     = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
+  var illu_build_prior      = function(mu_illu_now){
+      var illuminationPrior     = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
 
-    var shadow_list  = map(function(indx_now){
-        if (obj_list[indx_now]==1) {return 1} else {return flip(shadow_prior)}
-    }, _.range(num_rep))
+        var illumination = map(function(indx_now){return gaussian({mu: mu_illu_now, sigma: sigma_all})}, _.range(num_rep))
 
-    var illumination = map(function(indx_now){return gaussian({mu: mu_illu - shadow_list[indx_now]*shadow_decill, sigma: sigma_all})}, _.range(num_rep))
-    var light_dire   = sample(light_dire_dist)
+        var build_env_fun = function(curr_indx){
+            if (obj_list[curr_indx]==1){
+                return
+            }
+            var sum_all_i   = []
+            var num_all_i   = []
 
-    var build_env_fun = function(curr_indx){
-        if (obj_list[curr_indx]==1){
-            return
-        }
-        var sum_all_i   = []
-        var num_all_i   = []
+            var curr_x  = curr_indx%col_num
+            var curr_y  = (curr_indx - curr_x)/col_num
 
-        var curr_x  = curr_indx%col_num
-        var curr_y  = (curr_indx - curr_x)/col_num
+            var border_help_fun = function(indx_delta){
+                var new_x   = curr_x + x_delta_list[indx_delta]
+                var new_y   = curr_y + y_delta_list[indx_delta]
+                var new_indx    = new_x + new_y*col_num
 
-        var border_help_fun = function(indx_delta){
-            var new_x   = curr_x + x_delta_list[indx_delta]
-            var new_y   = curr_y + y_delta_list[indx_delta]
-            var new_indx    = new_x + new_y*col_num
+                if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
 
-            if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
-
-                if (obj_list[new_indx]==0){
-                    if (indx_delta<4){
-                        num_all_i.push(2)
-                        sum_all_i.push(2*illumination[new_indx])
-                    } 
-                    if (indx_delta>4){
-                        num_all_i.push(1)
-                        sum_all_i.push(illumination[new_indx])
+                    if (obj_list[new_indx]==0){
+                        if (indx_delta<4){
+                            num_all_i.push(2)
+                            sum_all_i.push(2*illumination[new_indx])
+                        } 
+                        if (indx_delta>4){
+                            num_all_i.push(1)
+                            sum_all_i.push(illumination[new_indx])
+                        }
                     }
                 }
             }
+            map(border_help_fun, _.range(9))
+
+            var illu_ave    = sum(sum_all_i)/sum(num_all_i)
+            var illu_diff   = illumination[curr_indx] - illu_ave
+            observe(Gaussian({mu: illu_diff, sigma: sigma_diff}), 0)
         }
-        map(border_help_fun, _.range(9))
 
-        var illu_ave    = sum(sum_all_i)/sum(num_all_i)
-        var illu_diff   = illumination[curr_indx] - illu_ave
-        observe(Gaussian({mu: illu_diff, sigma: sigma_diff}), 0)
+        map(build_env_fun, _.range(num_rep))
+        return illumination
+      })
+      return illuminationPrior
+  }
 
-        var shadow_help_fun = function(indx_obj){
-            var obj_curr_x  = obj_pos_list[indx_obj]%col_num
-            var obj_curr_y  = (obj_pos_list[indx_obj] - obj_curr_x)/col_num
+  var illu_prior    = illu_build_prior(mu_illu)
+  var illu_prior_s  = illu_build_prior(mu_illu - shadow_decill)
 
-            var delta_x     = curr_x - obj_curr_x
-            var delta_y     = curr_y - obj_curr_y
-
-            if (delta_x*light_array[light_dire][1]==delta_y*light_array[light_dire][0]){
-                observe(Gaussian({mu: shadow_list[curr_indx], sigma: sigma_shad_diff}), 1)
-            }
-        }
-        map(shadow_help_fun, _.range(4))
-    }
-
-    map(build_env_fun, _.range(num_rep))
-    return illumination
-  })
-
-  var illu_prior    = illuminationPrior
   var reflectancePosterior = Infer({method: 'MCMC', samples: mcmc_sample_num}, function() {
     var reflect_list = repeat(num_rep, reflect_build_prior)
-    //var shadow_list  = repeat(num_rep, shadow_build_prior)
-    //var illumination = repeat(num_rep, illumin_build_prior)
-    //var mul_factor   = gaussian({mu: mu_illu/mu_refl, sigma: sigma_all})
-    var illumination = sample(illu_prior)
-    /*
+
     var shadow_list  = map(function(indx_now){
         if (obj_list[indx_now]==1) {return 1} else {return flip(shadow_prior)}
     }, _.range(num_rep))
-    var illumination = map(function(indx_now){return gaussian({mu: mu_illu - shadow_list[indx_now]*shadow_decill, sigma: sigma_all})}, _.range(num_rep))
-    var mul_factor   = gaussian({mu: 1/mu_refl, sigma: sigma_all})
+
+    var illumination_o = sample(illu_prior)
+    var illumination_s = sample(illu_prior_s)
+    var illumination    = map(function(curr_indx){
+        if (shadow_list[curr_indx]==1){
+            return illumination_s[curr_indx]
+        } else {
+            return illumination_o[curr_indx]
+        }
+    }, _.range(num_rep))
+
     var light_dire   = sample(light_dire_dist)
-    */
 
     var lumin_list = map(function(indx_now){return reflect_list[indx_now] * illumination[indx_now]}, _.range(num_rep))
 
-    /*
     var build_env_fun = function(curr_indx){
         if (obj_list[curr_indx]==1){
             return
         }
-        var sum_all = []
-        var num_all = []
-        var sum_all_i   = []
-        var num_all_i   = []
 
         var curr_x  = curr_indx%col_num
         var curr_y  = (curr_indx - curr_x)/col_num
-
-        var border_help_fun = function(indx_delta){
-            var new_x   = curr_x + x_delta_list[indx_delta]
-            var new_y   = curr_y + y_delta_list[indx_delta]
-            var new_indx    = new_x + new_y*col_num
-
-            if ((new_x > -1) && (new_x < col_num) && (new_y > -1) && (new_y < row_num)){
-
-                if (obj_list[new_indx]==0){
-                    if (indx_delta<=4){
-                        num_all.push(2)
-                        sum_all.push(2*lumin_list[new_indx])
-                    } 
-                    if (indx_delta>4){
-                        num_all.push(1)
-                        sum_all.push(lumin_list[new_indx])
-                    }
-
-                    if (indx_delta<4){
-                        num_all_i.push(2)
-                        sum_all_i.push(2*illumination[new_indx])
-                    } 
-                    if (indx_delta>4){
-                        num_all_i.push(1)
-                        sum_all_i.push(illumination[new_indx])
-                    }
-                }
-            }
-        }
-        map(border_help_fun, _.range(9))
-
-        var average_all = sum(sum_all)/sum(num_all)
-        var diff_all    = mul_factor*average_all - illumination[curr_indx]
-        //observe(Gaussian({mu: diff_all, sigma: sigma_diff}), 0)
-        var illu_ave    = sum(sum_all_i)/sum(num_all_i)
-        var illu_diff   = illumination[curr_indx] - illu_ave
-        observe(Gaussian({mu: illu_diff, sigma: sigma_diff}), 0)
 
         var shadow_help_fun = function(indx_obj){
             var obj_curr_x  = obj_pos_list[indx_obj]%col_num
@@ -220,9 +166,7 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
         }
         map(shadow_help_fun, _.range(4))
     }
-
     map(build_env_fun, _.range(num_rep))
-    */
 
     if (want_img==0){
         var obs_help_func       = function (indx_need){
