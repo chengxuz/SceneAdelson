@@ -137,7 +137,7 @@ var fun_big_observe = function(tmp_observe, index_want, index_want2, want_img) {
         var obs_help_func       = function (indx_need){observe(Gaussian({mu: lumin_list[indx_need], sigma: sigma_all}), tmp_observe[indx_need])}
         map(obs_help_func, _.range(num_rep))
 
-        return [reflect_list[index_want] , reflect_list[index_want2]]
+        return [reflect_list[index_want] , reflect_list[index_want2], reflect_list, illumination]
 
     } else {
 
@@ -165,6 +165,7 @@ var ref_1_value     = listMean(list_ref_1)
 var ref_2_value     = listMean(list_ref_2)
 console.log([ref_1_value, ref_2_value])
 
+/*
 var current_lumin_dist = fun_big_observe(lum_list, 7, 10,1);
 var all_samples_lum    = repeat(dist_sample_num, function() {return sample(current_lumin_dist)})
 var list_lum_1      = map(function(now_tmp_l) {return now_tmp_l[0]}, all_samples_lum)
@@ -206,3 +207,4 @@ var big_array   = func_generate_img(lum_list_new, img_width, img_heigh, channel_
 savePixels.savePixels(big_array, "png", name_prefix.concat(process.argv[3]).concat("_").concat(process.argv[4]).concat("_").concat(process.argv[5]).concat("_").concat(process.argv[6]).concat("_re.png"))
 
 console.log('Ah, done!')
+*/
