@@ -4,6 +4,7 @@ var col_num = 6
 var row_num = 3
 var num_rep = col_num*row_num
 var mcmc_sample_num     = 30000
+//var mcmc_sample_num     = 30
 var dist_sample_num     = 20000
 
 // Get parameters from command line
@@ -164,6 +165,16 @@ var list_ref_2      = map(function(now_tmp_l) {return now_tmp_l[1]}, all_samples
 var ref_1_value     = listMean(list_ref_1)
 var ref_2_value     = listMean(list_ref_2)
 console.log([ref_1_value, ref_2_value])
+
+var list_ill_test   = map(function(now_tmp_l) {return now_tmp_l[3]}, all_samples_ref)
+var list_ill_each   = map(function(curr_indx){return map(function(now_tmp_l) {return now_tmp_l[curr_indx]}, list_ill_test)}, _.range(num_rep))
+var mean_ill_each   = map(function(now_list){return listMean(now_list)}, list_ill_each)
+console.log(mean_ill_each)
+
+var list_ref_test   = map(function(now_tmp_l) {return now_tmp_l[2]}, all_samples_ref)
+var list_ref_each   = map(function(curr_indx){return map(function(now_tmp_l) {return now_tmp_l[curr_indx]}, list_ref_test)}, _.range(num_rep))
+var mean_ref_each   = map(function(now_list){return listMean(now_list)}, list_ref_each)
+console.log(mean_ref_each)
 
 /*
 var current_lumin_dist = fun_big_observe(lum_list, 7, 10,1);
